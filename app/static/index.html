@@ -1,0 +1,278 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ask the data</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --border: #262b36;
+    --text: #e6e8ec;
+    --muted: #8a92a3;
+    --accent: #6ee7b7;
+    --danger: #f87171;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--sans); line-height: 1.5;
+    display: flex; justify-content: center; padding: 48px 20px;
+  }
+  main { width: 100%; max-width: 760px; }
+  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); font-size: 0.9rem; margin: 0 0 24px; }
+  .ask { display: flex; gap: 8px; }
+  input[type="text"] {
+    flex: 1; padding: 12px 14px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--panel);
+    color: var(--text); font-size: 0.95rem; font-family: var(--sans);
+  }
+  input[type="text"]:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+  button {
+    padding: 12px 18px; border-radius: 8px; border: 0; cursor: pointer;
+    background: var(--accent); color: #06281d; font-weight: 600; font-size: 0.95rem;
+  }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .hint { color: var(--muted); font-size: 0.8rem; margin: 10px 2px 0; }
+  section { margin-top: 28px; }
+  .label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px; display: flex; gap: 8px; align-items: center; }
+  .badge { background: var(--border); color: var(--text); padding: 1px 7px; border-radius: 99px; font-size: 0.7rem; letter-spacing: 0; text-transform: none; }
+  pre {
+    margin: 0; padding: 14px; border-radius: 8px; overflow-x: auto;
+    background: var(--panel); border: 1px solid var(--border);
+    font-family: var(--mono); font-size: 0.85rem; color: var(--text);
+  }
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  td { font-family: var(--mono); }
+  .banner { padding: 12px 14px; border-radius: 8px; font-size: 0.9rem; }
+  .banner.error { background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.4); color: var(--danger); }
+  .banner.info { background: var(--panel); border: 1px solid var(--border); color: var(--muted); }
+  .empty { color: var(--muted); font-size: 0.9rem; }
+  .chart-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); padding: 8px 4px; }
+  .chart-wrap svg { display: block; }
+  .chips { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+  .chip { padding: 9px 14px; border: 1px solid var(--border); border-radius: 999px; background: var(--panel); color: var(--text); font-size: 0.85rem; font-weight: 500; font-family: var(--sans); cursor: pointer; text-align: left; }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+</style>
+
+<main>
+  <h1>Ask the data</h1>
+  <p class="sub">Ask a question in plain English; it is turned into SQL and run against the database.</p>
+
+  <div class="ask">
+    <input id="q" type="text" placeholder="e.g. What's our total revenue by month?" autocomplete="off" />
+    <button id="go">Ask</button>
+  </div>
+  <p class="hint">Try: "Who are our top 3 customers by spend?" &middot; "Which product category sells best?" &middot; "What's our average order value?"</p>
+
+  <div id="out"></div>
+</main>
+
+<script>
+  const q = document.getElementById("q");
+  const go = document.getElementById("go");
+  const out = document.getElementById("out");
+
+  function el(tag, attrs = {}, children = []) {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === "class") node.className = v;
+      else if (k === "text") node.textContent = v;
+      else node.setAttribute(k, v);
+    }
+    for (const c of children) node.appendChild(c);
+    return node;
+  }
+
+  function banner(kind, message) {
+    return el("div", { class: `banner ${kind}`, text: message });
+  }
+
+  function sqlBlock(sql, attempts) {
+    const label = el("div", { class: "label", text: "Generated SQL" });
+    if (attempts && attempts > 1) {
+      label.appendChild(el("span", { class: "badge", text: `${attempts} attempts` }));
+    }
+    const sec = el("section");
+    sec.appendChild(label);
+    sec.appendChild(el("pre", { text: sql || "(none)" }));
+    return sec;
+  }
+
+  function resultsTable(columns, rows) {
+    const sec = el("section");
+    sec.appendChild(el("div", { class: "label", text: `Result · ${rows.length} row${rows.length === 1 ? "" : "s"}` }));
+    if (!rows.length) {
+      sec.appendChild(el("div", { class: "empty", text: "No rows returned." }));
+      return sec;
+    }
+    const thead = el("thead", {}, [
+      el("tr", {}, columns.map((c) => el("th", { text: c }))),
+    ]);
+    const tbody = el("tbody", {}, rows.map((r) =>
+      el("tr", {}, r.map((cell) =>
+        el("td", { text: cell === null ? "NULL" : String(cell) })
+      ))
+    ));
+    sec.appendChild(el("table", {}, [thead, tbody]));
+    return sec;
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  }
+
+  // A "nice" rounded step (1/2/5 x 10^n) so axis ticks land on round numbers.
+  function niceStep(span, count) {
+    const raw = (span || 1) / count;
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const norm = raw / mag;
+    return (norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10) * mag;
+  }
+
+  // Render the chart spec ({type, x_label, y_label, points}) as a
+  // self-contained SVG bar or line chart (no charting library).
+  function chartBlock(chart) {
+    const pts = chart.points || [];
+    const sec = el("section");
+    const label = el("div", { class: "label", text: `${chart.y_label} by ${chart.x_label}` });
+    label.appendChild(el("span", { class: "badge", text: chart.type }));
+    sec.appendChild(label);
+    if (!pts.length) return sec;
+
+    const padL = 54, padR = 18, padT = 18, padB = 72, plotH = 210;
+    const slot = Math.max(46, Math.min(90, Math.round(620 / pts.length)));
+    const W = Math.max(560, padL + padR + slot * pts.length);
+    const H = padT + plotH + padB;
+    const vals = pts.map((p) => p[1]);
+    // Round the axis bounds out to nice numbers so every tick gets a label and
+    // the top/bottom of the plot are labelled round values, not raw extremes.
+    const step = niceStep(Math.max(0, ...vals) - Math.min(0, ...vals), 5);
+    const maxV = Math.ceil(Math.max(0, ...vals) / step) * step;
+    const minV = Math.floor(Math.min(0, ...vals) / step) * step;
+    const span = (maxV - minV) || 1;
+    const y = (v) => padT + plotH * (1 - (v - minV) / span);
+    const accent = "#6ee7b7", grid = "#262b36", muted = "#8a92a3";
+    const fmt = (v) => Math.abs(v) >= 1000
+      ? v.toLocaleString(undefined, { maximumFractionDigits: 0 })
+      : Math.round(v * 100) / 100;
+    const rot = pts.length > 6;
+
+    let svg = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
+    const y0 = y(0);
+    const nTicks = Math.round(span / step);
+    for (let i = 0; i <= nTicks; i++) {
+      const gv = minV + i * step;
+      const gy = y(gv);
+      svg += `<line x1="${padL}" y1="${gy}" x2="${W - padR}" y2="${gy}" stroke="${grid}"/>`;
+      svg += `<text x="${padL - 8}" y="${gy + 4}" text-anchor="end" font-size="11" fill="${muted}">${fmt(gv)}</text>`;
+    }
+    const xLabel = (i, cx) =>
+      `<text x="${cx}" y="${H - padB + 18}" text-anchor="${rot ? "end" : "middle"}" font-size="11" fill="${muted}"` +
+      `${rot ? ` transform="rotate(-35 ${cx} ${H - padB + 18})"` : ""}>${esc(pts[i][0])}</text>`;
+
+    if (chart.type === "line") {
+      const cx = (i) => pts.length === 1 ? padL + (W - padL - padR) / 2 : padL + i * (W - padL - padR) / (pts.length - 1);
+      svg += `<polyline points="${pts.map((p, i) => `${cx(i)},${y(p[1])}`).join(" ")}" fill="none" stroke="${accent}" stroke-width="2"/>`;
+      pts.forEach((p, i) => { svg += `<circle cx="${cx(i)}" cy="${y(p[1])}" r="3" fill="${accent}"/>`; });
+      pts.forEach((p, i) => { svg += xLabel(i, cx(i)); });
+    } else {
+      const bw = slot * 0.6;
+      pts.forEach((p, i) => {
+        const cx = padL + i * slot + slot / 2;
+        const yv = y(p[1]);
+        const top = Math.min(yv, y0);
+        svg += `<rect x="${cx - bw / 2}" y="${top}" width="${bw}" height="${Math.max(1, Math.abs(yv - y0))}" rx="3" fill="${accent}"/>`;
+        svg += `<text x="${cx}" y="${top - 5}" text-anchor="middle" font-size="11" fill="${muted}">${fmt(p[1])}</text>`;
+        svg += xLabel(i, cx);
+      });
+    }
+    svg += "</svg>";
+
+    const wrap = el("div", { class: "chart-wrap" });
+    wrap.innerHTML = svg;
+    sec.appendChild(wrap);
+    return sec;
+  }
+
+  function renderResult(data) {
+    out.appendChild(sqlBlock(data.sql, data.attempts));
+    if (data.error) {
+      out.appendChild(banner("error", `Agent gave up: ${data.error}`));
+    } else {
+      if (data.chart) out.appendChild(chartBlock(data.chart));
+      out.appendChild(resultsTable(data.columns || [], data.rows || []));
+    }
+  }
+
+  function suggestionsBlock(items) {
+    const sec = el("section");
+    sec.appendChild(el("div", { class: "label", text: "Ask next" }));
+    const chips = el("div", { class: "chips" }, items.map((t) => {
+      const chip = el("button", { class: "chip", text: t });
+      chip.addEventListener("click", () => { q.value = t; ask(); });
+      return chip;
+    }));
+    sec.appendChild(chips);
+    return sec;
+  }
+
+  let askSeq = 0;  // guards against a stale request mutating the UI
+
+  async function ask() {
+    const question = q.value.trim();
+    if (!question) return;
+    const myId = ++askSeq;
+    out.innerHTML = "";
+    out.appendChild(banner("info", "Thinking…"));
+    go.disabled = true;
+
+    let data;
+    try {
+      const res = await fetch("/api/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question }),
+      });
+      data = await res.json();
+      if (myId !== askSeq) return;  // a newer question superseded this one
+      out.innerHTML = "";
+      if (!res.ok) {
+        out.appendChild(banner("error", data.detail || `Request failed (${res.status})`));
+        return;
+      }
+      renderResult(data);
+    } catch (err) {
+      if (myId !== askSeq) return;
+      out.innerHTML = "";
+      out.appendChild(banner("error", `Network error: ${err.message}`));
+      return;
+    } finally {
+      if (myId === askSeq) go.disabled = false;
+    }
+
+    // Follow-up suggestions: a second, best-effort call so the answer above
+    // never waits on them. Any failure just means no chips.
+    if (!data.error && (data.rows || []).length) {
+      try {
+        const res = await fetch("/api/suggest", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question, columns: data.columns, rows: data.rows }),
+        });
+        const s = await res.json();
+        if (myId === askSeq && s.suggestions && s.suggestions.length) {
+          out.appendChild(suggestionsBlock(s.suggestions));
+        }
+      } catch (_) { /* suggestions are optional */ }
+    }
+  }
+
+  go.addEventListener("click", ask);
+  q.addEventListener("keydown", (e) => { if (e.key === "Enter") ask(); });
+</script>

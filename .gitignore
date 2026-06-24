@@ -1,0 +1,16 @@
+# uv / Python
+.venv/
+__pycache__/
+*.pyc
+
+# local databases (regenerated from seed on first run)
+*.db
+
+# secrets
+.env
+
+# OS / editor
+.DS_Store
+
+# packaged archives
+*.zip

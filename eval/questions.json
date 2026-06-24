@@ -1,0 +1,133 @@
+{
+  "dataset_hint": "Answer-hidden self-check set. Only expected_hash is stored \u2014 no reference SQL, notes, or expected values. Safe to share with candidates.",
+  "questions": [
+    {
+      "id": "B1",
+      "dataset": "base",
+      "difficulty": "easy",
+      "ordered": false,
+      "question": "How many orders have been completed?",
+      "expected_hash": "8250171880a3412e81df6709116cd493c4fea6e658e4b4de4fda8e3e659fa0c5"
+    },
+    {
+      "id": "B2",
+      "dataset": "base",
+      "difficulty": "medium",
+      "ordered": false,
+      "question": "What is our total revenue from completed orders?",
+      "expected_hash": "bb2e28e80ddf8c00bfe2c326052e7b8b2ed5ca41b632acae2671e944b8a7b0c7"
+    },
+    {
+      "id": "B3",
+      "dataset": "base",
+      "difficulty": "medium",
+      "ordered": true,
+      "question": "Who are our top 3 customers by total spend on completed orders?",
+      "expected_hash": "3f677a4e1d3c2a2ef04bae6449601946c9a1f49c6d4f87ebb79f43a7108f6c45"
+    },
+    {
+      "id": "B4",
+      "dataset": "base",
+      "difficulty": "medium",
+      "ordered": false,
+      "question": "What is total revenue per product category from completed orders?",
+      "expected_hash": "66e482b707f2cda7e70c21a30ab21d1889e6214667b597367e9483a81d48f636"
+    },
+    {
+      "id": "B5",
+      "dataset": "base",
+      "difficulty": "medium",
+      "ordered": false,
+      "question": "What is our average order value across completed orders?",
+      "expected_hash": "1081afd9416425f57f615cf53bc9a3c03c05d8a7f6cfbe364e315ed6d84aada8"
+    },
+    {
+      "id": "B6",
+      "dataset": "base",
+      "difficulty": "hard",
+      "ordered": true,
+      "question": "Show total revenue by month from completed orders, in chronological order.",
+      "expected_hash": "181931698a4070fab71eb980c8da2e54cae6a8a70e70e9c8297933a71180b70d"
+    },
+    {
+      "id": "Q1",
+      "dataset": "hard",
+      "difficulty": "easy",
+      "ordered": false,
+      "question": "How many customers do we currently have that are still active (not deleted)?",
+      "expected_hash": "891db719972d9822acef028f6843534ef6045f56605acf4d127ff04f9c700556"
+    },
+    {
+      "id": "Q2",
+      "dataset": "hard",
+      "difficulty": "easy",
+      "ordered": false,
+      "question": "How many orders have been completed?",
+      "expected_hash": "612727d4f9649e1f242a53f5b5d4630e827fcd68870d8d133d9d6bb43da3ae66"
+    },
+    {
+      "id": "Q3",
+      "dataset": "hard",
+      "difficulty": "hard",
+      "ordered": false,
+      "question": "What is our total net revenue in USD across all revenue-bearing orders, after refunds?",
+      "expected_hash": "5b2fe843744c71376fc31356052973405940af960f3e5317f62428f15aadf26b"
+    },
+    {
+      "id": "Q4",
+      "dataset": "hard",
+      "difficulty": "medium",
+      "ordered": true,
+      "question": "Who are our top 3 customers by total amount paid, in USD?",
+      "expected_hash": "94377cea0bd2d9ca3332750c94663716cd55b73d5a8de63452aac69d7d9196a0"
+    },
+    {
+      "id": "Q5",
+      "dataset": "hard",
+      "difficulty": "medium",
+      "ordered": false,
+      "question": "What is the total quantity of items sold per product category, counting only completed or refunded orders?",
+      "expected_hash": "be3e85de03f59b6697f48001b6454f6c7be9cc8f8faf4de4d26507c0bc39666a"
+    },
+    {
+      "id": "Q6",
+      "dataset": "hard",
+      "difficulty": "hard",
+      "ordered": true,
+      "question": "Show gross revenue in USD by order month, in chronological order (completed or refunded orders).",
+      "expected_hash": "b06d5ef221867a28dc82d02e71c27a86123d4ce89d38a7e141e8b6a4e3a85049"
+    },
+    {
+      "id": "Q7",
+      "dataset": "hard",
+      "difficulty": "medium",
+      "ordered": false,
+      "question": "What is our current monthly recurring revenue (MRR) in USD from active subscriptions?",
+      "expected_hash": "d3ceb31cfa9050f4bafeab4595fdc6ff1e02fdc95855fae697ee82bcb3f81244"
+    },
+    {
+      "id": "Q8",
+      "dataset": "hard",
+      "difficulty": "hard",
+      "ordered": false,
+      "question": "List the names of active customers who have at least one completed order but no subscription.",
+      "expected_hash": "0587613305a34e7ce65778f6ebcc890d88d4ea6fcf20dab26b11e0acd918a0a6"
+    },
+    {
+      "id": "Q9",
+      "dataset": "hard",
+      "difficulty": "hard",
+      "ordered": false,
+      "question": "What was the net USD revenue from orders placed on 2024-04-18, after refunds? Use the transactional tables, not the daily rollup.",
+      "expected_hash": "c752b96f9e20964ab7cf627f2998e2673f6852298fd52deb2e2e0f094a518877"
+    },
+    {
+      "id": "Q10",
+      "dataset": "hard",
+      "difficulty": "medium",
+      "ordered": false,
+      "question": "How many active customers are in each region?",
+      "expected_hash": "2a3eaa059236203d460526b0ce9e48668eeede9f14d08ae7183f2581970d413d"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+[project]
+name = "llm-sql-agent-starter"
+version = "0.1.0"
+description = "Starter scaffold for the LLM SQL-agent / analytics pair interview. Plumbing only — bring your own LLM SDK and agent loop."
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",
+    "langgraph>=1.2.6",
+    "openai>=2.43.0",
+    "uvicorn[standard]>=0.29",
+]
+
+# This is an application, not a library — tell uv not to try to build/install it.
+[tool.uv]
+package = false
