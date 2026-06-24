@@ -53,10 +53,23 @@
   .banner.info { background: var(--panel); border: 1px solid var(--border); color: var(--muted); }
   .empty { color: var(--muted); font-size: 0.9rem; }
   .chart-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); padding: 8px 4px; }
-  .chart-wrap svg { display: block; }
+  .chart-wrap svg { display: block; max-width: 100%; height: auto; }
   .chips { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
   .chip { padding: 9px 14px; border: 1px solid var(--border); border-radius: 999px; background: var(--panel); color: var(--text); font-size: 0.85rem; font-weight: 500; font-family: var(--sans); cursor: pointer; text-align: left; }
   .chip:hover { border-color: var(--accent); color: var(--accent); }
+  details.sql > summary { display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+  details.sql > summary::-webkit-details-marker { display: none; }
+  details.sql[open] > summary { margin-bottom: 8px; }
+  details.sql .caret { transition: transform 0.15s; }
+  details.sql[open] .caret { transform: rotate(90deg); }
+  .result-grid { margin-top: 28px; display: grid; gap: 24px; grid-template-columns: 1fr; align-items: start; }
+  .result-grid > section { margin-top: 0; }
+  .table-wrap { max-height: 340px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
+  .table-wrap th { position: sticky; top: 0; background: var(--panel); }
+  @media (min-width: 1000px) {
+    main { max-width: 1040px; }
+    .result-grid { grid-template-columns: 1fr 1fr; }
+  }
 </style>
 
 <main>
@@ -93,13 +106,19 @@
   }
 
   function sqlBlock(sql, attempts) {
-    const label = el("div", { class: "label", text: "Generated SQL" });
+    const summary = el("summary", {}, [
+      el("span", { class: "caret", text: "▸" }),
+      el("span", { text: "Generated SQL" }),
+    ]);
     if (attempts && attempts > 1) {
-      label.appendChild(el("span", { class: "badge", text: `${attempts} attempts` }));
+      summary.appendChild(el("span", { class: "badge", text: `${attempts} attempts` }));
     }
+    const details = el("details", { class: "sql" }, [
+      summary,
+      el("pre", { text: sql || "(none)" }),
+    ]);
     const sec = el("section");
-    sec.appendChild(label);
-    sec.appendChild(el("pre", { text: sql || "(none)" }));
+    sec.appendChild(details);
     return sec;
   }
 
@@ -118,7 +137,7 @@
         el("td", { text: cell === null ? "NULL" : String(cell) })
       ))
     ));
-    sec.appendChild(el("table", {}, [thead, tbody]));
+    sec.appendChild(el("div", { class: "table-wrap" }, [el("table", {}, [thead, tbody])]));
     return sec;
   }
 
@@ -145,7 +164,8 @@
     sec.appendChild(label);
     if (!pts.length) return sec;
 
-    const padL = 54, padR = 18, padT = 18, padB = 72, plotH = 210;
+    const rot = pts.length > 6;              // rotate x-labels when crowded
+    const padL = 54, padR = 18, padT = 18, padB = rot ? 72 : 44, plotH = 210;
     const slot = Math.max(46, Math.min(90, Math.round(620 / pts.length)));
     const W = Math.max(560, padL + padR + slot * pts.length);
     const H = padT + plotH + padB;
@@ -161,7 +181,6 @@
     const fmt = (v) => Math.abs(v) >= 1000
       ? v.toLocaleString(undefined, { maximumFractionDigits: 0 })
       : Math.round(v * 100) / 100;
-    const rot = pts.length > 6;
 
     let svg = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
     const y0 = y(0);
@@ -204,9 +223,14 @@
     out.appendChild(sqlBlock(data.sql, data.attempts));
     if (data.error) {
       out.appendChild(banner("error", `Agent gave up: ${data.error}`));
+      return;
+    }
+    const table = resultsTable(data.columns || [], data.rows || []);
+    if (data.chart) {
+      // Chart and table side by side on wide screens (see .result-grid).
+      out.appendChild(el("div", { class: "result-grid" }, [chartBlock(data.chart), table]));
     } else {
-      if (data.chart) out.appendChild(chartBlock(data.chart));
-      out.appendChild(resultsTable(data.columns || [], data.rows || []));
+      out.appendChild(table);
     }
   }
 
